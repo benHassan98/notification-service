@@ -6,5 +6,4 @@ import java.util.List;
 public record NewPostRecord(Long id,
                             Long accountId,
                             Boolean isShared,
-                            List<Long> notifyAccountList,
-                            Date createdDate) { }
+                            List<Long> notifyAccountList) { }

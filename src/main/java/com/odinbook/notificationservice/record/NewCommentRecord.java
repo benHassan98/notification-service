@@ -6,5 +6,4 @@ import java.util.List;
 public record NewCommentRecord(Long id,
                                Long postId,
                                Long accountId,
-                               List<Long> notifyAccountList,
-                               Date createdDate) { }
+                               List<Long> notifyAccountList) { }

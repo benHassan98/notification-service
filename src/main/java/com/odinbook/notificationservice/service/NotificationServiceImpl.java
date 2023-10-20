@@ -7,6 +7,7 @@ import com.odinbook.notificationservice.record.NewPostRecord;
 import com.odinbook.notificationservice.repository.NotificationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.integration.annotation.ServiceActivator;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -34,19 +35,19 @@ public class NotificationServiceImpl implements NotificationService{
 
     @ServiceActivator(inputChannel = "newPostChannel")
     @Override
-    public void sendNewPostNotification(NewPostRecord newPostRecord) {
+    public void sendNewPostNotification(@Payload NewPostRecord newPostRecord) {
         System.out.println("In newPost: "+ newPostRecord);
     }
 
     @ServiceActivator(inputChannel = "newCommentChannel")
     @Override
-    public void sendNewCommentNotification(NewCommentRecord newCommentRecord) {
+    public void sendNewCommentNotification(@Payload NewCommentRecord newCommentRecord) {
         System.out.println("In newComment: "+ newCommentRecord);
     }
 
     @ServiceActivator(inputChannel = "newLikeChannel")
     @Override
-    public void sendLikeNotification(NewLikeRecord newLikeRecord) {
+    public void sendLikeNotification(@Payload NewLikeRecord newLikeRecord) {
         System.out.println("In newLike: "+ newLikeRecord);
     }
 }
