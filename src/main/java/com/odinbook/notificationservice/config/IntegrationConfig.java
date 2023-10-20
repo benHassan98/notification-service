@@ -1,33 +1,22 @@
 package com.odinbook.notificationservice.config;
 
-import org.springframework.amqp.AmqpException;
-import org.springframework.amqp.core.AcknowledgeMode;
+import com.odinbook.notificationservice.record.NewCommentRecord;
+import com.odinbook.notificationservice.record.NewLikeRecord;
+import com.odinbook.notificationservice.record.NewPostRecord;
 import org.springframework.amqp.core.AmqpTemplate;
-import org.springframework.amqp.core.MessageListener;
-import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.rabbit.connection.AbstractConnectionFactory;
-import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
-import org.springframework.amqp.rabbit.connection.Connection;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.listener.AbstractMessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
-import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
-import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
-import org.springframework.amqp.support.converter.MessageConverter;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.integration.amqp.dsl.Amqp;
-import org.springframework.integration.amqp.dsl.AmqpOutboundChannelAdapterSpec;
 import org.springframework.integration.amqp.inbound.AmqpInboundChannelAdapter;
 import org.springframework.integration.amqp.outbound.AmqpOutboundEndpoint;
+import org.springframework.integration.annotation.Filter;
 import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.integration.annotation.Transformer;
 import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.core.MessageSelector;
-import org.springframework.integration.dsl.IntegrationFlow;
+import org.springframework.integration.json.JsonToObjectTransformer;
 import org.springframework.integration.router.HeaderValueRouter;
 import org.springframework.integration.transformer.HeaderEnricher;
 import org.springframework.integration.transformer.support.StaticHeaderValueMessageProcessor;
@@ -56,15 +45,66 @@ public class IntegrationConfig {
         return new DirectChannel();
     }
 
+
     @Bean
-    @ServiceActivator(inputChannel = "fromRabbit")
+    @Filter(
+            inputChannel = "fromRabbit",
+            outputChannel = "routerChannel",
+            discardChannel = "toAccountChannel")
+    public MessageSelector serviceFilter() {
+        return message -> message.getHeaders().containsKey("service");
+    }
+
+
+    @Bean
+    public MessageChannel routerChannel() {
+        return new DirectChannel();
+    }
+
+    @Bean
+    @ServiceActivator(inputChannel = "routerChannel")
     public HeaderValueRouter headerValueRouter() {
         HeaderValueRouter router = new HeaderValueRouter("notificationType");
-        router.setChannelMapping("newPost", "newPostChannel");
-        router.setChannelMapping("newComment", "newCommentChannel");
-        router.setDefaultOutputChannelName("defaultChannel");
-
+        router.setChannelMapping("newPost", "newPostTransformerChannel");
+        router.setChannelMapping("newComment", "newCommentTransformerChannel");
+        router.setChannelMapping("newLike", "newLikeTransformerChannel");
         return router;
+    }
+
+    @Bean
+    public MessageChannel newPostTransformerChannel() {
+        return new DirectChannel();
+    }
+    @Bean
+    public MessageChannel newCommentTransformerChannel() {
+        return new DirectChannel();
+    }
+    @Bean
+    public MessageChannel newLikeTransformerChannel() {
+        return new DirectChannel();
+    }
+
+    @Bean
+    @Transformer(
+            inputChannel = "newPostTransformerChannel",
+            outputChannel = "newPostChannel")
+    public JsonToObjectTransformer newPostTransformer() {
+        return new JsonToObjectTransformer(NewPostRecord.class);
+    }
+
+    @Bean
+    @Transformer(
+            inputChannel = "newCommentTransformerChannel",
+            outputChannel = "newCommentChannel")
+    public JsonToObjectTransformer newCommentTransformer() {
+        return new JsonToObjectTransformer(NewCommentRecord.class);
+    }
+    @Bean
+    @Transformer(
+            inputChannel = "newLikeTransformerChannel",
+            outputChannel = "newLikeChannel")
+    public JsonToObjectTransformer newLikeTransformer() {
+        return new JsonToObjectTransformer(NewLikeRecord.class);
     }
 
     @Bean
@@ -75,9 +115,18 @@ public class IntegrationConfig {
     public MessageChannel newCommentChannel() {
         return new DirectChannel();
     }
+    @Bean
+    public MessageChannel newLikeChannel() {
+        return new DirectChannel();
+    }
 
     @Bean
-    @Transformer(inputChannel = "newPostChannel", outputChannel = "accountChannel")
+    public MessageChannel toAccountChannel() {
+        return new DirectChannel();
+    }
+
+    @Bean
+    @Transformer(inputChannel = "toAccountChannel", outputChannel = "accountChannel")
     public HeaderEnricher headerEnricherService() {
         return new HeaderEnricher(Collections.singletonMap(
                 "service", new StaticHeaderValueMessageProcessor<>("findNotifiedAccountsRequest")));
@@ -96,10 +145,5 @@ public class IntegrationConfig {
         return adapter;
     }
 
-
-    @Bean
-    public MessageChannel defaultChannel() {
-        return new DirectChannel();
-    }
 
 }
