@@ -2,6 +2,7 @@ package com.odinbook.notificationservice.config;
 
 import com.odinbook.notificationservice.record.NewCommentRecord;
 import com.odinbook.notificationservice.record.NewLikeRecord;
+import com.odinbook.notificationservice.record.NewMessageRecord;
 import com.odinbook.notificationservice.record.NewPostRecord;
 import org.springframework.amqp.core.AmqpTemplate;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
@@ -68,6 +69,7 @@ public class IntegrationConfig {
         router.setChannelMapping("newPost", "newPostTransformerChannel");
         router.setChannelMapping("newComment", "newCommentTransformerChannel");
         router.setChannelMapping("newLike", "newLikeTransformerChannel");
+        router.setChannelMapping("newMessage", "newMessageTransformerChannel");
         return router;
     }
 
@@ -81,6 +83,10 @@ public class IntegrationConfig {
     }
     @Bean
     public MessageChannel newLikeTransformerChannel() {
+        return new DirectChannel();
+    }
+    @Bean
+    public MessageChannel newMessageTransformerChannel() {
         return new DirectChannel();
     }
 
@@ -108,6 +114,15 @@ public class IntegrationConfig {
     }
 
     @Bean
+    @Transformer(
+            inputChannel = "newMessageTransformerChannel",
+            outputChannel = "newMessageChannel")
+    public JsonToObjectTransformer newMessageTransformer() {
+        return new JsonToObjectTransformer(NewMessageRecord.class);
+    }
+
+
+    @Bean
     public MessageChannel newPostChannel() {
         return new DirectChannel();
     }
@@ -119,7 +134,10 @@ public class IntegrationConfig {
     public MessageChannel newLikeChannel() {
         return new DirectChannel();
     }
-
+    @Bean
+    public MessageChannel newMessageChannel() {
+        return new DirectChannel();
+    }
     @Bean
     public MessageChannel toAccountChannel() {
         return new DirectChannel();

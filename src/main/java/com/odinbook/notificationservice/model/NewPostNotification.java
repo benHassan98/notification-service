@@ -11,6 +11,9 @@ public class NewPostNotification extends Notification {
     @Column(name = "is_created")
     private Boolean isCreated;
 
+    @Column(name = "account_id")
+    private Long accountId;
+
     @Column(name = "post_id")
     private Long postId;
 
@@ -28,5 +31,13 @@ public class NewPostNotification extends Notification {
 
     public void setPostId(Long postId) {
         this.postId = postId;
+    }
+
+    public Long getAccountId() {
+        return accountId;
+    }
+
+    public void setAccountId(Long accountId) {
+        this.accountId = accountId;
     }
 }
