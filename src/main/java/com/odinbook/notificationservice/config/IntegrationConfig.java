@@ -50,10 +50,12 @@ public class IntegrationConfig {
     @Bean
     @Filter(
             inputChannel = "fromRabbit",
-            outputChannel = "routerChannel",
-            discardChannel = "toAccountChannel")
+            outputChannel = "toAccountChannel",
+            discardChannel = "routerChannel")
     public MessageSelector serviceFilter() {
-        return message -> message.getHeaders().containsKey("service");
+        return message -> !message.getHeaders().containsKey("withNotifiedAccounts")
+                &&
+                "newPost".equals(message.getHeaders().get("notificationType"));
     }
 
 
@@ -147,7 +149,7 @@ public class IntegrationConfig {
     @Transformer(inputChannel = "toAccountChannel", outputChannel = "accountChannel")
     public HeaderEnricher headerEnricherService() {
         return new HeaderEnricher(Collections.singletonMap(
-                "service", new StaticHeaderValueMessageProcessor<>("findNotifiedAccountsRequest")));
+                "withNotifiedAccounts", new StaticHeaderValueMessageProcessor<>(true)));
     }
 
     @Bean

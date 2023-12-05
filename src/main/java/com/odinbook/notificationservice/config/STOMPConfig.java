@@ -21,7 +21,7 @@ public class STOMPConfig implements WebSocketMessageBrokerConfigurer {
     @Value("${spring.rabbitmq.password}")
     private String password;
     @Value("${app.url}")
-    private String url;
+    private String appUrl;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {

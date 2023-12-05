@@ -7,15 +7,15 @@ import jakarta.persistence.Entity;
 @Entity
 public class NewMessageNotification extends Notification{
 
-    @Column(name = "sender_id")
-    private Long senderId;
+    @Column(name = "account_id")
+    private Long accountId;
 
-    public Long getSenderId() {
-        return senderId;
+    public Long getAccountId() {
+        return accountId;
     }
 
-    public void setSenderId(Long senderId) {
-        this.senderId = senderId;
+    public void setAccountId(Long accountId) {
+        this.accountId = accountId;
     }
 }
 

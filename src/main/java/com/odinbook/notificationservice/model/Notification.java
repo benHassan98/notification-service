@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.sql.Date;
+import java.time.Instant;
 
 @Entity
 @Table(name = "notifications")
@@ -14,14 +15,15 @@ public class Notification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     protected Long id;
 
+    @Column(name="type", nullable=false, updatable=false, insertable=false)
+    protected String type;
+
     @Column(name = "receiver_id")
     protected Long receiverId;
 
-    @Column(name = "is_viewed")
-    protected Boolean isViewed = false;
     @Column(name = "created_date", nullable = false, updatable = false)
     @CreationTimestamp
-    protected Date createdDate;
+    protected Instant createdDate;
 
     public Long getId() {
         return id;
@@ -31,7 +33,7 @@ public class Notification {
         this.id = id;
     }
 
-    public Date getCreatedDate() {
+    public Instant getCreatedDate() {
         return createdDate;
     }
 
@@ -43,11 +45,12 @@ public class Notification {
         this.receiverId = receiverId;
     }
 
-    public Boolean getViewed() {
-        return isViewed;
+    public String getType() {
+        return type;
     }
 
-    public void setViewed(Boolean viewed) {
-        isViewed = viewed;
+    public void setType(String type) {
+        this.type = type;
     }
+
 }

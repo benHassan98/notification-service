@@ -9,11 +9,12 @@ public class AddFriendNotification extends Notification {
     @Column(name = "is_request")
     private Boolean isRequest;
 
-    @Column(name = "adding_account")
+    @Column(name = "is_accepted")
+    private Boolean isAccepted;
+    @Column(name = "adding_id")
     private Long addingId;
 
-
-    @Column(name = "added_account")
+    @Column(name = "added_id")
     private Long addedId;
 
     public Boolean getRequest() {
@@ -38,5 +39,13 @@ public class AddFriendNotification extends Notification {
 
     public void setAddedId(Long addedId) {
         this.addedId = addedId;
+    }
+
+    public Boolean getAccepted() {
+        return isAccepted;
+    }
+
+    public void setAccepted(Boolean accepted) {
+        isAccepted = accepted;
     }
 }
