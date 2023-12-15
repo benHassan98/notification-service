@@ -24,6 +24,12 @@ public class NotificationsController {
 
         return  notificationService.findNotificationsByReceiverId(receiverId);
     }
+
+    @GetMapping("/notifications/view/{receiverId}")
+    public void viewNotificationsByReceiverId(@PathVariable Long receiverId){
+        notificationService.viewNotificationsByReceiverId(receiverId);
+    }
+
     @GetMapping("/checkFriendRequest/{addingId}/{addedId}")
     public Boolean checkFriendRequestInProcess(@PathVariable Long addingId, @PathVariable Long addedId){
 

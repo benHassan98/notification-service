@@ -4,6 +4,7 @@ import com.odinbook.notificationservice.model.AddFriendNotification;
 import com.odinbook.notificationservice.record.AddFriendRecord;
 import com.odinbook.notificationservice.service.NotificationService;
 import com.odinbook.notificationservice.service.NotificationServiceImpl;
+import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -14,19 +15,23 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Objects;
 
 @Controller
 public class STOMPController {
 
     private final NotificationService notificationService;
     private final SimpMessagingTemplate simpMessagingTemplate;
+    private final RabbitAdmin rabbitAdmin;
 
 
     @Autowired
     public STOMPController(NotificationService notificationService,
-                           SimpMessagingTemplate simpMessagingTemplate) {
+                           SimpMessagingTemplate simpMessagingTemplate,
+                           RabbitAdmin rabbitAdmin) {
         this.notificationService = notificationService;
         this.simpMessagingTemplate = simpMessagingTemplate;
+        this.rabbitAdmin = rabbitAdmin;
     }
 
     @MessageMapping("/addFriend")
@@ -52,10 +57,12 @@ public class STOMPController {
 
             savedNotification.setType("AddFriendNotification");
 
-            simpMessagingTemplate.convertAndSend(
-                    "/queue/notifications."+addFriendRecord.addedId(),
-                    savedNotification
-            );
+            if(Objects.nonNull(rabbitAdmin.getQueueInfo("/queue/notifications."+addFriendRecord.addedId()))){
+                simpMessagingTemplate.convertAndSend(
+                        "/queue/notifications."+addFriendRecord.addedId(),
+                        savedNotification
+                );
+            }
 
 
         }
@@ -68,10 +75,12 @@ public class STOMPController {
 
             savedNotification.setType("AddFriendNotification");
 
-            simpMessagingTemplate.convertAndSend(
-                    "/queue/notifications."+addFriendRecord.addingId(),
-                    savedNotification
-            );
+            if(Objects.nonNull(rabbitAdmin.getQueueInfo("/queue/notifications."+addFriendRecord.addingId()))){
+                simpMessagingTemplate.convertAndSend(
+                        "/queue/notifications."+addFriendRecord.addingId(),
+                        savedNotification
+                );
+            }
 
             simpMessagingTemplate.convertAndSend(
                     "/queue/odinBook.accountChannel",

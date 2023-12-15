@@ -20,6 +20,7 @@ public class Notification {
 
     @Column(name = "receiver_id")
     protected Long receiverId;
+    protected Boolean isViewed = false;
 
     @Column(name = "created_date", nullable = false, updatable = false)
     @CreationTimestamp
@@ -53,4 +54,11 @@ public class Notification {
         this.type = type;
     }
 
+    public Boolean getViewed() {
+        return isViewed;
+    }
+
+    public void setViewed(Boolean viewed) {
+        isViewed = viewed;
+    }
 }

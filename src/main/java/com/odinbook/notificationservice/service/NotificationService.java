@@ -20,5 +20,6 @@ public interface NotificationService {
     public void deleteFriendRequest(Long addingId, Long addedId);
     public Boolean areFriends(Long addingId, Long addedId);
     public Boolean friendRequestInProcess(Long addingId, Long addedId);
+    public void viewNotificationsByReceiverId(Long receiverId);
 
 }

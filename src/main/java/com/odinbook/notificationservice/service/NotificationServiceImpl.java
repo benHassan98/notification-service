@@ -130,17 +130,16 @@ public class NotificationServiceImpl implements NotificationService{
 
     @Override
     public void send(String destination, Notification notification) {
-//        TreeMap<String, Object> treeMap = new TreeMap<>();
-//        treeMap.put("auto-delete",true);
-//        treeMap.put("durable",true);
+        TreeMap<String, Object> treeMap = new TreeMap<>();
+        treeMap.put("auto-delete",true);
+        treeMap.put("durable",true);
 
         if(Objects.nonNull(rabbitAdmin.getQueueInfo(destination.split("/")[2]))){
-            System.out.println("dest: "+destination.split("/")[2]);
-            System.out.println("Sent: "+notification.getType());
 
             simpMessagingTemplate.convertAndSend(
                     destination,
-                    notification
+                    notification,
+                    treeMap
             );
 
         }
@@ -167,5 +166,16 @@ public class NotificationServiceImpl implements NotificationService{
     @Override
     public Boolean friendRequestInProcess(Long addingId, Long addedId) {
         return notificationRepository.friendRequestInProcess(addingId, addedId) == 1;
+    }
+
+    @Override
+    @Transactional
+    public void viewNotificationsByReceiverId(Long receiverId) {
+
+        entityManger
+                .createNativeQuery("UPDATE notifications  SET is_viewed = 1 WHERE receiver_id = :receiverId")
+                .setParameter("receiverId",receiverId)
+                .executeUpdate();
+
     }
 }
