@@ -173,7 +173,7 @@ public class NotificationServiceImpl implements NotificationService{
     public void viewNotificationsByReceiverId(Long receiverId) {
 
         entityManger
-                .createNativeQuery("UPDATE notifications  SET is_viewed = 1 WHERE receiver_id = :receiverId")
+                .createNativeQuery("UPDATE notifications  SET is_viewed = true WHERE receiver_id = :receiverId")
                 .setParameter("receiverId",receiverId)
                 .executeUpdate();
 

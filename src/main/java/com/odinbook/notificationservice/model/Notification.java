@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.sql.Date;
+import java.sql.Timestamp;
 import java.time.Instant;
 
 @Entity
@@ -24,7 +25,7 @@ public class Notification {
 
     @Column(name = "created_date", nullable = false, updatable = false)
     @CreationTimestamp
-    protected Instant createdDate;
+    protected Timestamp createdDate;
 
     public Long getId() {
         return id;
@@ -34,7 +35,7 @@ public class Notification {
         this.id = id;
     }
 
-    public Instant getCreatedDate() {
+    public Timestamp getCreatedDate() {
         return createdDate;
     }
 
