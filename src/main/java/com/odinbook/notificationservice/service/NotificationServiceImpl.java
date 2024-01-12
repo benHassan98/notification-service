@@ -1,24 +1,31 @@
 package com.odinbook.notificationservice.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.odinbook.notificationservice.model.*;
-import com.odinbook.notificationservice.record.NewCommentRecord;
-import com.odinbook.notificationservice.record.NewLikeRecord;
-import com.odinbook.notificationservice.record.NewMessageRecord;
-import com.odinbook.notificationservice.record.NewPostRecord;
+import com.odinbook.notificationservice.record.*;
 import com.odinbook.notificationservice.repository.NotificationRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
-import org.springframework.amqp.rabbit.core.RabbitAdmin;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.integration.annotation.ServiceActivator;
+
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.http.*;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
-import java.util.TreeMap;
+
 
 @Service
 public class NotificationServiceImpl implements NotificationService{
@@ -27,15 +34,16 @@ public class NotificationServiceImpl implements NotificationService{
     private EntityManager entityManger;
     private final NotificationRepository notificationRepository;
     private final SimpMessagingTemplate simpMessagingTemplate;
-    private final RabbitAdmin rabbitAdmin;
+    private final StringRedisTemplate stringRedisTemplate;
 
     @Autowired
     public NotificationServiceImpl(NotificationRepository notificationRepository,
                                    SimpMessagingTemplate simpMessagingTemplate,
-                                   RabbitAdmin rabbitAdmin) {
+                                   StringRedisTemplate stringRedisTemplate) {
         this.notificationRepository = notificationRepository;
         this.simpMessagingTemplate = simpMessagingTemplate;
-        this.rabbitAdmin = rabbitAdmin;
+        this.stringRedisTemplate = stringRedisTemplate;
+
     }
 
     @Override
@@ -49,9 +57,21 @@ public class NotificationServiceImpl implements NotificationService{
     }
 
 
-    @ServiceActivator(inputChannel = "newPostChannel")
+
     @Override
-    public void sendNewPostNotification(@Payload NewPostRecord newPostRecord) {
+    public void sendNewPostNotification(String postJson) {
+
+        NewPostRecord newPostRecord;
+
+        try{
+            newPostRecord = new ObjectMapper()
+                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                    .readValue(postJson, NewPostRecord.class);
+        }
+        catch (JsonProcessingException exception){
+            exception.printStackTrace();
+            return;
+        }
 
         newPostRecord.notifyAccountList().forEach(accountId->{
 
@@ -75,9 +95,21 @@ public class NotificationServiceImpl implements NotificationService{
 
     }
 
-    @ServiceActivator(inputChannel = "newCommentChannel")
+
     @Override
-    public void sendNewCommentNotification(@Payload NewCommentRecord newCommentRecord) {
+    public void sendNewCommentNotification(String commentJson){
+
+        NewCommentRecord newCommentRecord;
+
+        try{
+            newCommentRecord = new ObjectMapper()
+                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                    .readValue(commentJson, NewCommentRecord.class);
+        }
+        catch (JsonProcessingException exception){
+            exception.printStackTrace();
+            return;
+        }
 
         NewCommentNotification notification = new NewCommentNotification();
 
@@ -95,9 +127,21 @@ public class NotificationServiceImpl implements NotificationService{
 
     }
 
-    @ServiceActivator(inputChannel = "newLikeChannel")
+
     @Override
-    public void sendLikeNotification(@Payload NewLikeRecord newLikeRecord) {
+    public void sendNewLikeNotification(String likeJson){
+
+        NewLikeRecord newLikeRecord;
+
+        try{
+            newLikeRecord = new ObjectMapper()
+                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                    .readValue(likeJson, NewLikeRecord.class);
+        }
+        catch (JsonProcessingException exception){
+            exception.printStackTrace();
+            return;
+        }
 
         NewLikeNotification notification = new NewLikeNotification();
 
@@ -112,9 +156,21 @@ public class NotificationServiceImpl implements NotificationService{
 
     }
 
-    @ServiceActivator(inputChannel = "newMessageChannel")
+
     @Override
-    public void sendMessageNotification(NewMessageRecord newMessageRecord) {
+    public void sendNewMessageNotification(String messageJson){
+
+        NewMessageRecord newMessageRecord;
+
+        try{
+            newMessageRecord = new ObjectMapper()
+                    .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                    .readValue(messageJson, NewMessageRecord.class);
+        }
+        catch (JsonProcessingException exception){
+            exception.printStackTrace();
+            return;
+        }
 
         NewMessageNotification notification = new NewMessageNotification();
 
@@ -130,19 +186,11 @@ public class NotificationServiceImpl implements NotificationService{
 
     @Override
     public void send(String destination, Notification notification) {
-        TreeMap<String, Object> treeMap = new TreeMap<>();
-        treeMap.put("auto-delete",true);
-        treeMap.put("durable",true);
 
-        if(Objects.nonNull(rabbitAdmin.getQueueInfo(destination.split("/")[2]))){
-
-            simpMessagingTemplate.convertAndSend(
-                    destination,
-                    notification,
-                    treeMap
-            );
-
-        }
+        simpMessagingTemplate.convertAndSend(
+                destination,
+                notification
+        );
 
     }
 
@@ -176,6 +224,81 @@ public class NotificationServiceImpl implements NotificationService{
                 .createNativeQuery("UPDATE notifications  SET is_viewed = true WHERE receiver_id = :receiverId")
                 .setParameter("receiverId",receiverId)
                 .executeUpdate();
+
+    }
+
+    @Override
+    public void addFriend(AddFriendRecord addFriendRecord) {
+
+        if(this.areFriends(addFriendRecord.addingId(), addFriendRecord.addedId()))
+            return;
+
+
+        AddFriendNotification addFriendNotification = new AddFriendNotification();
+
+        addFriendNotification.setAddingId(addFriendRecord.addingId());
+        addFriendNotification.setAddedId(addFriendRecord.addedId());
+        addFriendNotification.setRequest(addFriendRecord.isRequest());
+        addFriendNotification.setAccepted(addFriendRecord.isAccepted());
+
+
+        if(addFriendRecord.isRequest()){
+            addFriendNotification.setReceiverId(addFriendRecord.addedId());
+
+            AddFriendNotification savedNotification = (AddFriendNotification)
+                    this.createNotification(addFriendNotification);
+
+            savedNotification.setType("AddFriendNotification");
+
+            simpMessagingTemplate.convertAndSend(
+                    "/queue/notifications."+addFriendRecord.addedId(),
+                    savedNotification
+            );
+
+
+        }
+        else if (addFriendRecord.isAccepted()){
+
+            addFriendNotification.setReceiverId(addFriendRecord.addingId());
+
+            AddFriendNotification savedNotification = (AddFriendNotification)
+                    this.createNotification(addFriendNotification);
+
+            savedNotification.setType("AddFriendNotification");
+
+            simpMessagingTemplate.convertAndSend(
+                    "/queue/notifications."+addFriendRecord.addingId(),
+                    savedNotification
+            );
+
+            String addFriendRecordJson;
+
+            try{
+                addFriendRecordJson = new ObjectMapper()
+                        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                        .writeValueAsString(addFriendRecord);
+            }
+            catch (JsonProcessingException exception){
+                exception.printStackTrace();
+                return;
+            }
+
+            stringRedisTemplate.convertAndSend("addFriendChannel", addFriendRecordJson);
+
+
+            this.deleteFriendRequest(
+                    addFriendRecord.addingId(),
+                    addFriendRecord.addedId()
+            );
+        }
+        else{
+            this.deleteFriendRequest(
+                    addFriendRecord.addingId(),
+                    addFriendRecord.addedId()
+            );
+        }
+
+
 
     }
 }
